@@ -39,17 +39,17 @@ export default function LandingPage() {
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-verde-claro border border-verde-primario text-verde-escuro text-sm font-medium mb-8">
             🌿 Agente de IA para Nutricionistas no WhatsApp
           </div>
-          
+
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 tracking-tight leading-tight mb-6">
-            Seu assistente de IA no WhatsApp.<br/>
-            <span className="text-verde-primario">Para nutricionistas que querem atender mais, sem trabalhar mais.</span>
+            Seu assistente de IA no WhatsApp.<br />
+            <span className="text-verde-primario">Para nutricionistas que querem atender mais.</span>
           </h1>
-          
+
           <p className="text-lg text-gray-500 max-w-2xl leading-relaxed mb-10">
             O NutriFlow responde dúvidas de dieta, envia planos alimentares e lembra
             os pacientes das consultas — automaticamente, 24 horas por dia.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 items-center mb-12">
             <Link href="/sign-up" className="bg-verde-primario text-white px-7 py-3.5 rounded-lg font-medium text-base hover:bg-verde-escuro transition-colors w-full sm:w-auto">
               Começar trial gratuito de 14 dias
@@ -58,7 +58,7 @@ export default function LandingPage() {
               Ver como funciona
             </a>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <div className="flex -space-x-3">
               <div className="w-9 h-9 rounded-full bg-verde-claro border-2 border-white flex items-center justify-center text-verde-escuro text-xs font-bold">AP</div>
@@ -83,7 +83,7 @@ export default function LandingPage() {
       <section className="bg-white py-24 px-4">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-16">Você reconhece alguma dessas situações?</h2>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             <div className="bg-orange-50 rounded-xl p-8 border-l-4 border-laranja">
               <div className="text-4xl font-bold text-gray-900 mb-2">3h/dia</div>
@@ -93,7 +93,7 @@ export default function LandingPage() {
                 perguntas todos os dias, de todos os pacientes.
               </p>
             </div>
-            
+
             <div className="bg-verde-claro rounded-xl p-8 border-l-4 border-verde-primario">
               <div className="text-4xl font-bold text-gray-900 mb-2">68%</div>
               <div className="font-bold text-gray-900 mb-4">dos pacientes esperam resposta fora do horário</div>
@@ -102,7 +102,7 @@ export default function LandingPage() {
                 a abandonar o tratamento.
               </p>
             </div>
-            
+
             <div className="bg-red-50 rounded-xl p-8 border-l-4 border-red-600">
               <div className="text-4xl font-bold text-gray-900 mb-2">40%</div>
               <div className="font-bold text-gray-900 mb-4">de abandono por falta de acompanhamento</div>
@@ -156,7 +156,7 @@ export default function LandingPage() {
           </div>
 
           <div className="space-y-12 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
-            
+
             <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
               <div className="flex items-center justify-center w-12 h-12 rounded-full border-4 border-white bg-verde-primario text-white font-bold text-xl shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
                 1
@@ -186,7 +186,7 @@ export default function LandingPage() {
                 <p className="text-gray-600">Cada interação fica registrada. Você vê o histórico, recebe alertas de fallback e acompanha o engajamento de cada paciente.</p>
               </div>
             </div>
-            
+
           </div>
 
           <div className="mt-16 bg-verde-claro border border-verde-primario rounded-xl p-6 text-center">
@@ -285,7 +285,7 @@ export default function LandingPage() {
               </form>
             </div>
           </div>
-          
+
           <div className="mt-16 text-center text-gray-500">
             <p>Break-even: apenas 4 clientes no Plano Essencial já cobrem todos os custos operacionais.</p>
           </div>
@@ -296,7 +296,7 @@ export default function LandingPage() {
       <section className="bg-white py-24 px-4">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-16">O que nutricionistas dizem</h2>
-          
+
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-gray-50 p-8 rounded-2xl">
               <div className="flex text-laranja mb-6">
@@ -315,7 +315,7 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="bg-gray-50 p-8 rounded-2xl">
               <div className="flex text-laranja mb-6">
                 <Star fill="currentColor" size={20} />
@@ -341,7 +341,7 @@ export default function LandingPage() {
       <section className="bg-creme py-24 px-4">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">Perguntas frequentes</h2>
-          
+
           <Accordion type="single" collapsible className="w-full bg-white rounded-xl p-6 shadow-sm">
             {[
               { q: "Preciso saber programar para usar o NutriFlow?", a: "Não. O setup é feito em uma sessão de 1 hora ao vivo com nossa equipe. Você define os protocolos, a gente configura tudo." },
@@ -395,7 +395,7 @@ export default function LandingPage() {
             </div>
             <p className="text-gray-400 text-sm">Automatizando o atendimento nutricional no Brasil.</p>
           </div>
-          
+
           <div>
             <h4 className="font-semibold mb-4">Produto</h4>
             <ul className="space-y-3 text-gray-400 text-sm">
@@ -404,7 +404,7 @@ export default function LandingPage() {
               <li><a href="#como-funciona" className="hover:text-white transition-colors">Como funciona</a></li>
             </ul>
           </div>
-          
+
           <div>
             <h4 className="font-semibold mb-4">Empresa</h4>
             <ul className="space-y-3 text-gray-400 text-sm">
@@ -413,7 +413,7 @@ export default function LandingPage() {
               <li><a href="#" className="hover:text-white transition-colors">Contato</a></li>
             </ul>
           </div>
-          
+
           <div>
             <h4 className="font-semibold mb-4">Legal</h4>
             <ul className="space-y-3 text-gray-400 text-sm">
@@ -423,7 +423,7 @@ export default function LandingPage() {
             </ul>
           </div>
         </div>
-        
+
         <div className="max-w-7xl mx-auto pt-8 border-t border-gray-800 text-center text-gray-500 text-sm">
           © 2026 TechForja. Todos os direitos reservados.
         </div>
