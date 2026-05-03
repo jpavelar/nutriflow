@@ -1,8 +1,22 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Search, Users, Eye, Send as SendIcon, Edit, Trash2, MoreVertical, Plus } from 'lucide-react'
+import { 
+  Search, 
+  Users, 
+  Eye, 
+  Send as SendIcon, 
+  Edit, 
+  Trash2, 
+  MoreVertical, 
+  Plus, 
+  Loader2, 
+  EyeOff,
+  UserCheck
+} from 'lucide-react'
+import { toast } from 'sonner'
+import type { Patient } from '@/types'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
@@ -20,48 +34,122 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Skeleton } from '@/components/ui/skeleton'
-
-// Mock Data
-const MOCK_PATIENTS = [
-  { id: '1', name: 'Ana Carolina', whatsapp: '+55 11 99999-9999', goal: 'Emagrecimento', next_appointment: 'Amanhã, 14:00', status: 'Ativo' },
-  { id: '2', name: 'Marcos Silva', whatsapp: '+55 11 98888-8888', goal: 'Ganho de massa', next_appointment: 'Qua, 09:30', status: 'Pausado' },
-  { id: '3', name: 'Juliana Costa', whatsapp: '+55 11 97777-7777', goal: 'Saúde geral', next_appointment: '-', status: 'Inativo' },
-]
+import { Badge } from '@/components/ui/badge'
 
 export default function PacientesPage() {
   const [loading, setLoading] = useState(true)
+  const [patients, setPatients] = useState<Patient[]>([])
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('Todos')
   const [goal, setGoal] = useState('Todos')
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  const fetchPatients = useCallback(async () => {
+    setLoading(true)
+    try {
+      const query = new URLSearchParams()
+      if (search) query.append('search', search)
+      if (status !== 'Todos') query.append('status', status)
+      if (goal !== 'Todos') query.append('goal', goal)
+      
+      const res = await fetch(`/api/pacientes?${query.toString()}`)
+      if (res.ok) {
+        const data = await res.json()
+        setPatients(Array.isArray(data) ? data : [])
+      } else {
+        toast.error('Erro ao carregar lista de pacientes')
+      }
+    } catch (error) {
+      console.error('Erro ao buscar pacientes:', error)
+      toast.error('Erro de conexão com o servidor')
+    } finally {
+      setLoading(false)
+    }
+  }, [search, status, goal])
 
   useEffect(() => {
-    // Simular fetch
-    const timer = setTimeout(() => setLoading(false), 1000)
+    const timer = setTimeout(fetchPatients, 500)
     return () => clearTimeout(timer)
-  }, [])
+  }, [fetchPatients])
+
+  const handleUpdateStatus = async (patientId: string, newStatus: string) => {
+    setActionLoading(patientId)
+    try {
+      const res = await fetch(`/api/pacientes/${patientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      })
+      if (res.ok) {
+        toast.success(`Status atualizado: ${newStatus}`)
+        await fetchPatients()
+      } else {
+        toast.error('Erro ao atualizar status')
+      }
+    } catch (error) {
+      toast.error('Falha na comunicação com o servidor')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleDelete = async (patientId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este paciente? Esta ação não pode ser desfeita.')) return
+    
+    setActionLoading(patientId)
+    try {
+      const res = await fetch(`/api/pacientes/${patientId}`, {
+        method: 'DELETE'
+      })
+      if (res.ok) {
+        toast.success('Paciente removido com sucesso')
+        await fetchPatients()
+      } else {
+        toast.error('Erro ao excluir paciente')
+      }
+    } catch (error) {
+      toast.error('Falha ao processar exclusão')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr || dateStr === '-') return '-'
+    try {
+      return new Date(dateStr).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch {
+      return dateStr
+    }
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-900">Pacientes</h2>
-        <Link href="/dashboard/pacientes/novo" className="bg-verde-primario text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-verde-escuro transition-colors">
+        <Link href="/dashboard/pacientes/novo" className="bg-verde-primario text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-verde-escuro transition-all hover:shadow-lg active:scale-95">
           <Plus size={18} /> Novo paciente
         </Link>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl border border-gray-200">
+      <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <Input 
             placeholder="Buscar por nome ou WhatsApp..." 
-            className="pl-10"
+            className="pl-10 border-gray-200 focus:ring-verde-primario"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <div className="w-full sm:w-48">
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger>
+            <SelectTrigger className="border-gray-200">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -74,7 +162,7 @@ export default function PacientesPage() {
         </div>
         <div className="w-full sm:w-48">
           <Select value={goal} onValueChange={setGoal}>
-            <SelectTrigger>
+            <SelectTrigger className="border-gray-200">
               <SelectValue placeholder="Objetivo" />
             </SelectTrigger>
             <SelectContent>
@@ -88,95 +176,77 @@ export default function PacientesPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-6 space-y-4">
-            {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
           </div>
-        ) : MOCK_PATIENTS.length > 0 ? (
-          <>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Paciente</TableHead>
-                    <TableHead>WhatsApp</TableHead>
-                    <TableHead>Objetivo</TableHead>
-                    <TableHead>Próxima consulta</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[80px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {MOCK_PATIENTS.map((patient) => (
-                    <TableRow key={patient.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-verde-claro text-verde-escuro flex items-center justify-center font-bold text-xs">
-                            {patient.name.charAt(0)}
-                          </div>
-                          <span className="font-medium text-gray-900">{patient.name}</span>
+        ) : patients.length > 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-gray-50/50">
+                <TableRow>
+                  <TableHead className="font-bold">Paciente</TableHead>
+                  <TableHead className="font-bold">WhatsApp</TableHead>
+                  <TableHead className="font-bold">Objetivo</TableHead>
+                  <TableHead className="font-bold">Próxima consulta</TableHead>
+                  <TableHead className="font-bold">Status</TableHead>
+                  <TableHead className="w-[60px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {patients.map((patient) => (
+                  <TableRow key={patient.id} className="hover:bg-gray-50/50 transition-colors">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-verde-claro text-verde-escuro flex items-center justify-center font-bold text-sm">
+                          {patient.name?.charAt(0) || 'P'}
                         </div>
-                      </TableCell>
-                      <TableCell className="text-gray-500">{patient.whatsapp}</TableCell>
-                      <TableCell className="text-gray-500">{patient.goal}</TableCell>
-                      <TableCell className="text-gray-500">{patient.next_appointment}</TableCell>
-                      <TableCell>
-                        <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                          patient.status === 'Ativo' ? 'bg-green-100 text-green-800' :
-                          patient.status === 'Pausado' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {patient.status}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger className="p-2 hover:bg-gray-100 rounded-md">
-                            <MoreVertical size={16} className="text-gray-500" />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/dashboard/pacientes/${patient.id}`} className="flex items-center gap-2 cursor-pointer">
-                                <Eye size={16} /> Ver detalhes
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/dashboard/planos?patient=${patient.id}`} className="flex items-center gap-2 cursor-pointer">
-                                <SendIcon size={16} /> Enviar plano
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
-                              <Edit size={16} /> Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
-                              <Trash2 size={16} /> Desativar
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="p-4 border-t border-gray-200 text-sm text-gray-500 flex justify-between items-center">
-              <span>Mostrando 1–3 de 3 pacientes</span>
-              <div className="flex gap-2">
-                <button className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50" disabled>Anterior</button>
-                <button className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50" disabled>Próximo</button>
-              </div>
-            </div>
-          </>
+                        <span className="font-semibold text-gray-900">{patient.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-gray-600 font-medium">{patient.whatsapp}</TableCell>
+                    <TableCell className="text-gray-500">{patient.goal}</TableCell>
+                    <TableCell className="text-gray-500">{formatDate(patient.next_appointment)}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`${
+                        patient.status === 'Ativo' ? 'bg-green-50 text-green-700 border-green-200' :
+                        patient.status === 'Pausado' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                        'bg-gray-50 text-gray-700 border-gray-200'
+                      } px-3 py-1`}>
+                        {patient.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                          <MoreVertical size={18} className="text-gray-500" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56 p-2">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/pacientes/${patient.id}`} className="flex items-center gap-3 p-2 cursor-pointer bg-orange-500 text-white hover:bg-orange-600 focus:bg-orange-600 focus:text-white rounded-md">
+                              <Eye size={16} /> Ver detalhes
+                            </Link>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-            <Users size={48} className="text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum paciente cadastrado ainda.</h3>
-            <p className="text-gray-500 max-w-md mb-6">
-              Cadastre seu primeiro paciente e o agente estará pronto para atendê-lo.
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+            <Users size={64} className="text-gray-200 mb-6" />
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Nenhum paciente por aqui</h3>
+            <p className="text-gray-500 max-w-sm mb-8">
+              {search || status !== 'Todos' || goal !== 'Todos' 
+                ? 'Nenhum resultado para os filtros aplicados. Tente buscar de outra forma.' 
+                : 'Sua lista está vazia. Cadastre seu primeiro paciente para começar o acompanhamento.'}
             </p>
-            <Link href="/dashboard/pacientes/novo" className="bg-verde-primario text-white px-5 py-2.5 rounded-lg font-medium hover:bg-verde-escuro transition-colors">
-              Cadastrar primeiro paciente
+            <Link href="/dashboard/pacientes/novo" className="bg-verde-primario text-white px-8 py-3 rounded-xl font-bold hover:bg-verde-escuro transition-all shadow-md">
+              Cadastrar Paciente
             </Link>
           </div>
         )}

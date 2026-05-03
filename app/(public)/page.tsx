@@ -1,5 +1,5 @@
-import Link from 'next/link'
 import { CheckCircle2, MessageCircle, Bell, FileText, UserCheck, LayoutDashboard, Zap, Star } from 'lucide-react'
+import { LoginButton } from '@/components/auth/LoginButtons'
 import {
   Accordion,
   AccordionContent,
@@ -23,12 +23,12 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="flex items-center gap-6">
-            <Link href="/sign-in" className="text-sm font-medium text-gray-500 hover:text-verde-primario transition-colors">
+            <LoginButton mode="sign-in" className="text-sm font-medium text-gray-500 hover:text-verde-primario transition-colors">
               Entrar
-            </Link>
-            <Link href="/sign-up" className="text-sm font-medium bg-verde-primario text-white px-5 py-2.5 rounded-lg hover:bg-verde-escuro transition-colors">
+            </LoginButton>
+            <LoginButton mode="sign-up" className="text-sm font-medium bg-verde-primario text-white px-5 py-2.5 rounded-lg hover:bg-verde-escuro transition-colors">
               Começar agora — é grátis
-            </Link>
+            </LoginButton>
           </div>
         </div>
       </header>
@@ -51,9 +51,9 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 items-center mb-12">
-            <Link href="/sign-up" className="bg-verde-primario text-white px-7 py-3.5 rounded-lg font-medium text-base hover:bg-verde-escuro transition-colors w-full sm:w-auto">
+            <LoginButton mode="sign-up" className="bg-verde-primario text-white px-7 py-3.5 rounded-lg font-medium text-base hover:bg-verde-escuro transition-colors w-full sm:w-auto">
               Começar trial gratuito de 14 dias
-            </Link>
+            </LoginButton>
             <a href="#como-funciona" className="bg-transparent border border-gray-200 text-gray-700 px-7 py-3.5 rounded-lg font-medium text-base hover:bg-gray-50 transition-colors w-full sm:w-auto">
               Ver como funciona
             </a>
@@ -374,9 +374,9 @@ export default function LandingPage() {
             automatizar seu atendimento.
           </p>
           <div className="flex flex-col items-center gap-4">
-            <Link href="/sign-up" className="bg-white text-verde-primario px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-50 transition-colors shadow-lg">
+            <LoginButton mode="sign-up" className="bg-white text-verde-primario px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-50 transition-colors shadow-lg">
               Começar trial gratuito — 14 dias
-            </Link>
+            </LoginButton>
             <span className="text-teal-200 text-sm">Sem cartão de crédito para começar.</span>
           </div>
         </div>

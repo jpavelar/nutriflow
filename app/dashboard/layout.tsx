@@ -1,6 +1,8 @@
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { Header } from '@/components/dashboard/Header'
+import { SyncUser } from '@/components/auth/SyncUser'
 import { Suspense } from 'react'
+
 
 export default function DashboardLayout({
   children,
@@ -9,7 +11,9 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="flex min-h-screen bg-[#F9FAFB]">
+      <SyncUser />
       <Sidebar />
+
       <div className="flex-1 md:ml-60 flex flex-col min-h-screen">
         <Suspense fallback={<div className="h-16 bg-white border-b border-gray-200"></div>}>
           <Header />

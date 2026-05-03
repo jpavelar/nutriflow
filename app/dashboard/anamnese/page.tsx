@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Upload, FileText, X, Download } from 'lucide-react'
 import { toast } from 'sonner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -14,20 +14,27 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-const MOCK_PATIENTS = [
-  { id: '1', name: 'Ana Carolina', whatsapp: '+55 11 99999-9999' },
-  { id: '2', name: 'Marcos Silva', whatsapp: '+55 11 98888-8888' },
-]
-
-const MOCK_ANAMNESES = [
-  { id: '1', patient_name: 'Ana Carolina', date: '15/04/2026', notes: 'Paciente relatou dificuldade para dormir.', pdf_url: '#' },
-]
-
 export default function AnamnesePage() {
+  const [patients, setPatients] = useState<any[]>([])
   const [patientId, setPatientId] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [notes, setNotes] = useState('')
   const [isUploading, setIsUploading] = useState(false)
+  const [isLoadingPatients, setIsLoadingPatients] = useState(true)
+
+  // Busca os pacientes reais
+  useEffect(() => {
+    fetch('/api/pacientes')
+      .then(res => res.json())
+      .then(data => {
+        setPatients(Array.isArray(data) ? data : [])
+        setIsLoadingPatients(false)
+      })
+      .catch(() => {
+        toast.error('Erro ao carregar lista de pacientes')
+        setIsLoadingPatients(false)
+      })
+  }, [])
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
@@ -55,24 +62,28 @@ export default function AnamnesePage() {
   }
 
   const handleSubmit = async () => {
-    if (!patientId) {
-      toast.error('Selecione um paciente.')
-      return
-    }
-    if (!file) {
-      toast.error('Faça upload do arquivo PDF da anamnese.')
+    if (!patientId || !file) {
+      toast.error('Selecione um paciente e o arquivo PDF.')
       return
     }
 
     setIsUploading(true)
     try {
-      // Simulação de upload (já que o Dev fará a integração com S3/Uploadthing)
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Converte o PDF para base64 para enviar via JSON
+      const reader = new FileReader()
+      const base64Promise = new Promise((resolve) => {
+        reader.onload = () => resolve(reader.result)
+        reader.readAsDataURL(file)
+      })
       
+      const base64File = await base64Promise
+
       const payload = {
         patient_id: patientId,
-        url_pdf: 'https://example.com/anamnese.pdf', // URL mockada
-        notes
+        pdfData: base64File,
+        fileName: file.name,
+        message: notes,
+        tipo: 'anamnese'
       }
 
       const res = await fetch('/api/anamnese', {
@@ -83,11 +94,10 @@ export default function AnamnesePage() {
 
       if (!res.ok) throw new Error('Falha ao salvar anamnese')
 
-      toast.success('Anamnese salva com sucesso!')
+      toast.success('Anamnese enviada com sucesso!')
       setFile(null)
       setNotes('')
       setPatientId('')
-      // refresh data
     } catch (error) {
       toast.error('Erro ao enviar anamnese. Tente novamente.')
     } finally {
@@ -111,16 +121,22 @@ export default function AnamnesePage() {
               <SelectValue placeholder="Selecione um paciente" />
             </SelectTrigger>
             <SelectContent>
-              {MOCK_PATIENTS.map(p => (
-                <SelectItem key={p.id} value={p.id}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-verde-claro text-verde-escuro flex items-center justify-center font-bold text-[10px]">
-                      {p.name.charAt(0)}
+              {isLoadingPatients ? (
+                <div className="p-2 text-center text-xs text-gray-500">Carregando...</div>
+              ) : patients.length === 0 ? (
+                <div className="p-2 text-center text-xs text-gray-500">Nenhum paciente encontrado</div>
+              ) : (
+                patients.map(p => (
+                  <SelectItem key={p.id} value={p.id}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-verde-claro text-verde-escuro flex items-center justify-center font-bold text-[10px]">
+                        {p.name?.charAt(0) || 'P'}
+                      </div>
+                      {p.name} <span className="text-gray-400 ml-1 text-xs">{p.whatsapp}</span>
                     </div>
-                    {p.name} <span className="text-gray-400 ml-1 text-xs">{p.whatsapp}</span>
-                  </div>
-                </SelectItem>
-              ))}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -195,26 +211,24 @@ export default function AnamnesePage() {
           <h3 className="font-bold text-gray-900">Anamneses recentes</h3>
         </div>
         
-        {MOCK_ANAMNESES.length > 0 ? (
+        {patients.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Paciente</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Observações</TableHead>
-                <TableHead className="w-[80px]">PDF</TableHead>
+                <TableHead>WhatsApp</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-[80px]">Ação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {MOCK_ANAMNESES.map((anamnesis) => (
-                <TableRow key={anamnesis.id}>
-                  <TableCell className="font-medium text-gray-900">{anamnesis.patient_name}</TableCell>
-                  <TableCell className="text-gray-500">{anamnesis.date}</TableCell>
-                  <TableCell className="text-gray-500 max-w-[200px] truncate">{anamnesis.notes}</TableCell>
+              {patients.slice(0, 5).map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell className="font-medium text-gray-900">{p.name}</TableCell>
+                  <TableCell className="text-gray-500">{p.whatsapp}</TableCell>
+                  <TableCell className="text-gray-500">{p.status || 'Ativo'}</TableCell>
                   <TableCell>
-                    <a href={anamnesis.pdf_url} className="text-verde-primario hover:bg-verde-claro p-2 rounded-md inline-block transition-colors">
-                      <Download size={18} />
-                    </a>
+                    <div className="text-verde-primario text-xs font-medium">Paciente Ativo</div>
                   </TableCell>
                 </TableRow>
               ))}

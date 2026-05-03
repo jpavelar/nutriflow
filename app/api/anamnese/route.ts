@@ -1,12 +1,21 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { createAnamnesis, getPatientAnamneses, getPatientById } from '@/lib/airtable'
+import { triggerN8nWorkflow } from '@/lib/n8n'
 import { z } from 'zod'
+
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+}
 
 const anamnesisSchema = z.object({
   patient_id: z.string(),
-  url_pdf: z.string().url(),
-  notes: z.string().optional().default(''),
+  pdfData: z.string(), // base64
+  fileName: z.string(),
+  message: z.string().optional().default(''),
 })
 
 export async function POST(req: Request) {
@@ -21,21 +30,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Dados inválidos', details: parsed.error.format() }, { status: 400 })
     }
 
-    const patient = await getPatientById(parsed.data.patient_id)
-    if (!patient || patient.nutritionist_id !== userId) {
-      return NextResponse.json({ error: 'Paciente não encontrado ou não pertence a esta nutricionista' }, { status: 403 })
-    }
-
-    const newAnamnesis = await createAnamnesis({
-      patient_id: parsed.data.patient_id,
-      url_pdf: parsed.data.url_pdf,
-      notes: parsed.data.notes,
-      upload_date: new Date().toISOString(),
+    // Chama o n8n para processar o upload e atualizar o paciente no Airtable
+    const response: any = await triggerN8nWorkflow('nutriflow', {
+      action: 'uploadAndSend', 
+      nutritionistId: userId,
+      patientId: parsed.data.patient_id,
+      pdfData: parsed.data.pdfData,
+      fileName: parsed.data.fileName,
+      message: parsed.data.message
     })
 
-    return NextResponse.json(newAnamnesis, { status: 201 })
+    return NextResponse.json({ success: true, response }, { status: 201 })
   } catch (error) {
-    console.error('Erro ao salvar anamnese:', error)
+    console.error('Erro ao processar anamnese:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

@@ -26,11 +26,7 @@ const formSchema = z.object({
   name: z.string().min(3, 'Mínimo 3 caracteres'),
   whatsapp: z.string().regex(/^\+55\d{2}9?\d{8}$/, 'Formato inválido. Use: +5511999999999'),
   email: z.string().email('E-mail inválido').optional().or(z.literal('')),
-  goal: z.enum(['Emagrecimento', 'Ganho de massa', 'Saúde geral', 'Outro'], {
-    required_error: "Selecione um objetivo",
-  }),
   restrictions: z.string().optional(),
-  notes: z.string().optional(),
   next_appointment: z.string().optional(),
 })
 
@@ -153,29 +149,7 @@ export default function NovoPacientePage() {
             <div className="space-y-4">
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider border-b pb-2">Perfil nutricional</h3>
               <div className="grid sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="goal"
-                  render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
-                      <FormLabel>Objetivo principal <span className="text-red-500">*</span></FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o objetivo" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Emagrecimento">Emagrecimento</SelectItem>
-                          <SelectItem value="Ganho de massa">Ganho de massa</SelectItem>
-                          <SelectItem value="Saúde geral">Saúde geral</SelectItem>
-                          <SelectItem value="Outro">Outro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Campo Objetivo Removido */}
 
                 <FormField
                   control={form.control}
@@ -195,23 +169,7 @@ export default function NovoPacientePage() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
-                      <FormLabel>Observações (Opcional)</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Anotações gerais sobre o paciente..." 
-                          className="resize-none"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Campo Observações Removido */}
               </div>
             </div>
 

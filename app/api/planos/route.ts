@@ -3,11 +3,21 @@ import { auth } from '@clerk/nextjs/server'
 import { createPlan, getPatientPlans, getPatientById } from '@/lib/airtable'
 import { triggerN8nWorkflow } from '@/lib/n8n'
 import { z } from 'zod'
+ 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+}
 
 const planSchema = z.object({
   patient_id: z.string(),
-  url_pdf: z.string().url(),
+  pdfData: z.string(), // Base64
+  fileName: z.string().optional(),
   message: z.string().max(500).optional().default(''),
+  tipo: z.string().optional().default('plano'),
 })
 
 export async function POST(req: Request) {
@@ -22,33 +32,38 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Dados inválidos', details: parsed.error.format() }, { status: 400 })
     }
 
-    const patient = await getPatientById(parsed.data.patient_id)
-    if (!patient || patient.nutritionist_id !== userId) {
-      return NextResponse.json({ error: 'Paciente não encontrado ou não pertence a esta nutricionista' }, { status: 403 })
+
+    // Chamada para o Webhook UNIFICADO (Produção)
+    console.log("[api/planos] Enviando para o webhook unificado...");
+    let n8nRes: any = {};
+    try {
+      n8nRes = await triggerN8nWorkflow('nutriflow', {
+        action: 'uploadAndSend',
+        patientId: parsed.data.patient_id,
+        pdfData: parsed.data.pdfData, // Base64
+        fileName: parsed.data.fileName || 'plano-alimentar.pdf',
+        message: parsed.data.message || `Olá, segue seu plano alimentar atualizado!`,
+        nutritionistId: userId,
+        tipo: parsed.data.tipo
+      });
+    } catch (e) {
+      console.warn("[api/planos] Erro na resposta do n8n:", e);
     }
 
-    // Calcular próxima versão
-    const existingPlans = await getPatientPlans(parsed.data.patient_id)
-    const nextVersion = existingPlans.length > 0 ? existingPlans[0].version + 1 : 1
 
-    const newPlan = await createPlan({
-      patient_id: parsed.data.patient_id,
-      url_pdf: parsed.data.url_pdf,
-      version: nextVersion,
-    })
-
-    // Acionar N8N
-    await triggerN8nWorkflow('enviar-plano', {
-      patientId: parsed.data.patient_id,
-      patientWhatsapp: patient.whatsapp,
-      pdfUrl: parsed.data.url_pdf,
-      message: parsed.data.message,
-    })
-
-    return NextResponse.json(newPlan, { status: 201 })
-  } catch (error) {
-    console.error('Erro ao salvar plano:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    return NextResponse.json({ success: true, n8nRes });
+  } catch (error: any) {
+    console.error('--- ERRO CRÍTICO NO ENVIO DE PLANO ---');
+    console.error('Mensagem:', error.message);
+    if (error.response) {
+      console.error('Status n8n:', error.response.status);
+      console.error('Dados n8n:', await error.response.text());
+    }
+    console.error('Stack:', error.stack);
+    return NextResponse.json({ 
+      error: 'Erro interno ao processar plano', 
+      details: error.message 
+    }, { status: 500 })
   }
 }
 
@@ -64,12 +79,28 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'patient_id é obrigatório' }, { status: 400 })
     }
 
-    const patient = await getPatientById(patient_id)
-    if (!patient || patient.nutritionist_id !== userId) {
+    // Buscar dados do paciente via N8N
+    const patientResponse: any = await triggerN8nWorkflow('nutriflow', {
+      action: 'getPatientById',
+      patientId: patient_id,
+      nutritionistId: userId
+    })
+
+    const patient = patientResponse?.patient || patientResponse
+    if (!patient || (patient.nutritionist_id && patient.nutritionist_id !== userId)) {
       return NextResponse.json({ error: 'Paciente não encontrado ou não autorizado' }, { status: 403 })
     }
 
-    const plans = await getPatientPlans(patient_id)
+    // const plans = await getPatientPlans(patient_id)
+
+    // Buscar histórico de planos via N8N
+    const response: any = await triggerN8nWorkflow('nutriflow', {
+      action: 'getPatientPlans',
+      patientId: patient_id,
+      nutritionistId: userId
+    })
+
+    const plans = Array.isArray(response) ? response : response?.plans || []
     return NextResponse.json(plans)
   } catch (error) {
     console.error('Erro ao buscar planos:', error)

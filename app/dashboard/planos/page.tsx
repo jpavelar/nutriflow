@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from 'react'
-import { Upload, FileText, X, Download, Send, Smartphone } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Upload, FileText, X, Download, Send, Smartphone, Loader2, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -14,20 +14,48 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-const MOCK_PATIENTS = [
-  { id: '1', name: 'Ana Carolina', whatsapp: '+55 11 99999-9999' },
-  { id: '2', name: 'Marcos Silva', whatsapp: '+55 11 98888-8888' },
-]
-
-const MOCK_PLANS = [
-  { id: '1', patient_name: 'Ana Carolina', version: 2, sent_at: '20/04/2026', status: 'Visualizado', pdf_url: '#' },
-]
-
 export default function PlanosPage() {
   const [patientId, setPatientId] = useState('')
+  const [patients, setPatients] = useState<any[]>([])
+  const [plans, setPlans] = useState<any[]>([])
+  const [isLoadingPatients, setIsLoadingPatients] = useState(true)
   const [file, setFile] = useState<File | null>(null)
   const [message, setMessage] = useState('')
   const [isUploading, setIsUploading] = useState(false)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const res = await fetch('/api/pacientes')
+        if (res.ok) {
+          const data = await res.json()
+          setPatients(data)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar pacientes:', error)
+      } finally {
+        setIsLoadingPatients(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  useEffect(() => {
+    if (patientId) {
+      async function fetchPlans() {
+        try {
+          const res = await fetch(`/api/planos?patient_id=${patientId}`)
+          if (res.ok) {
+            const data = await res.json()
+            setPlans(data)
+          }
+        } catch (error) {
+          console.error('Erro ao buscar planos:', error)
+        }
+      }
+      fetchPlans()
+    }
+  }, [patientId])
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
@@ -69,26 +97,36 @@ export default function PlanosPage() {
       // Simulação de upload do arquivo para S3/Uploadthing e endpoint
       await new Promise(resolve => setTimeout(resolve, 2000))
       
-      const payload = {
-        patient_id: patientId,
-        url_pdf: 'https://example.com/plano-alimentar.pdf',
-        message
-      }
-
-      const res = await fetch('/api/planos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-
-      if (!res.ok) throw new Error('Falha ao enviar plano via n8n')
-
-      const patientName = MOCK_PATIENTS.find(p => p.id === patientId)?.name
-      toast.success(`Plano enviado para ${patientName}!`, { icon: '✓' })
+      // Converter o arquivo para Base64 para enviar via API
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
       
-      setFile(null)
-      setMessage('')
-      setPatientId('')
+      reader.onload = async () => {
+        const base64File = reader.result as string;
+        
+        const payload = {
+          patient_id: patientId,
+          pdfData: base64File, 
+          fileName: file.name,
+          message,
+          tipo: 'plano'
+        }
+
+        const res = await fetch('/api/planos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+
+        if (!res.ok) throw new Error('Falha ao enviar plano via n8n')
+
+        const patientName = patients.find(p => p.id === patientId)?.name
+        toast.success(`Plano enviado para ${patientName}!`, { icon: '✓' })
+        
+        setFile(null)
+        setMessage('')
+        setPatientId('')
+      };
     } catch (error) {
       toast.error('Plano salvo, mas falha no envio WhatsApp. Contate o suporte.')
     } finally {
@@ -111,23 +149,26 @@ export default function PlanosPage() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5 mt-2">Paciente <span className="text-red-500">*</span></label>
-          <Select value={patientId} onValueChange={setPatientId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione um paciente" />
-            </SelectTrigger>
-            <SelectContent>
-              {MOCK_PATIENTS.map(p => (
-                <SelectItem key={p.id} value={p.id}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-verde-claro text-verde-escuro flex items-center justify-center font-bold text-[10px]">
-                      {p.name.charAt(0)}
-                    </div>
-                    {p.name} <span className="text-gray-400 ml-1 text-xs">{p.whatsapp}</span>
-                  </div>
-                </SelectItem>
+          <div className="relative group">
+            <select
+              value={patientId}
+              onChange={(e) => setPatientId(e.target.value)}
+              disabled={isLoadingPatients}
+              className="w-full h-10 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-verde-escuro/20 focus:border-verde-escuro appearance-none cursor-pointer disabled:bg-gray-50 disabled:text-gray-400"
+            >
+              <option value="" disabled>
+                {isLoadingPatients ? "Carregando pacientes..." : "Selecione um paciente"}
+              </option>
+              {patients.map((p) => (
+                <option key={String(p.id)} value={String(p.id)}>
+                  {p.name}
+                </option>
               ))}
-            </SelectContent>
-          </Select>
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
+              <ChevronDown size={16} />
+            </div>
+          </div>
         </div>
 
         <div>
@@ -207,7 +248,7 @@ export default function PlanosPage() {
           <h3 className="font-bold text-gray-900">Histórico de envios</h3>
         </div>
         
-        {MOCK_PLANS.length > 0 ? (
+        {plans.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
@@ -219,9 +260,9 @@ export default function PlanosPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {MOCK_PLANS.map((plan) => (
+              {plans.map((plan) => (
                 <TableRow key={plan.id}>
-                  <TableCell className="font-medium text-gray-900">{plan.patient_name}</TableCell>
+                  <TableCell className="font-medium text-gray-900">{plan.patient_name || patients.find(p => p.id === patientId)?.name}</TableCell>
                   <TableCell className="text-gray-500">v{plan.version}</TableCell>
                   <TableCell className="text-gray-500">{plan.sent_at}</TableCell>
                   <TableCell>
@@ -230,7 +271,7 @@ export default function PlanosPage() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <a href={plan.pdf_url} className="text-verde-primario hover:bg-verde-claro p-2 rounded-md inline-block transition-colors">
+                    <a href={plan.pdf_url} target="_blank" rel="noopener noreferrer" className="text-verde-primario hover:bg-verde-claro p-2 rounded-md inline-block transition-colors">
                       <Download size={18} />
                     </a>
                   </TableCell>
@@ -239,7 +280,9 @@ export default function PlanosPage() {
             </TableBody>
           </Table>
         ) : (
-          <div className="p-8 text-center text-gray-500">Nenhum plano enviado ainda.</div>
+          <div className="p-8 text-center text-gray-500">
+            {patientId ? 'Nenhum plano enviado para este paciente ainda.' : 'Selecione um paciente para ver o histórico.'}
+          </div>
         )}
       </div>
     </div>

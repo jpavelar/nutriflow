@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // TODO [DEV — INTEGRAÇÃO N8N]
 // Workflows disponíveis no n8n (Hostinger VPS):
-//   - enviar-plano: { patientId, patientWhatsapp, pdfUrl, message? }
+//   - upload-pdf: { patientId, patientWhatsapp, pdfUrl, message? }
 //   - onboarding-nutricionista: { nutritionistId, name, email, whatsappPessoal }
 // URL base: process.env.N8N_WEBHOOK_URL
 // Secret: x-webhook-secret header
@@ -13,23 +13,34 @@ export async function triggerN8nWorkflow(
 ): Promise<unknown> {
   const url = `${process.env.N8N_WEBHOOK_URL}/${workflowPath}`
 
-  // TODO [DEV]: descomentar quando n8n estiver configurado no VPS
-  /*
+  console.log('[n8n] Triggering:', url, JSON.stringify(payload, null, 2))
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+
+  if (process.env.N8N_WEBHOOK_SECRET) {
+    headers['x-webhook-secret'] = process.env.N8N_WEBHOOK_SECRET
+  }
+
   const response = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-webhook-secret': process.env.N8N_WEBHOOK_SECRET!,
-    },
+    headers,
     body: JSON.stringify(payload),
   })
+
   if (!response.ok) {
     throw new Error(`n8n webhook falhou: ${response.status} ${response.statusText}`)
   }
-  return response.json()
-  */
 
-  // Simulação local (remover quando n8n estiver ativo)
-  console.log('[n8n] Simulando trigger:', workflowPath, JSON.stringify(payload, null, 2))
-  return { ok: true, simulated: true, workflow: workflowPath }
+  const text = await response.text()
+  if (!text) return {}
+
+  try {
+    return JSON.parse(text)
+  } catch (e) {
+    console.warn('[n8n] Resposta não é um JSON válido:', text)
+    return { text }
+  }
 }
+

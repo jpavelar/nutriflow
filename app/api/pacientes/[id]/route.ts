@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { getPatientById, updatePatient } from '@/lib/airtable'
+import { triggerN8nWorkflow } from '@/lib/n8n'
 import { z } from 'zod'
 
 const patientUpdateSchema = z.object({
@@ -20,8 +20,14 @@ export async function GET(
     const { userId } = auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const patient = await getPatientById(params.id)
-    if (!patient || patient.nutritionist_id !== userId) {
+    const response: any = await triggerN8nWorkflow('nutriflow', {
+      action: 'getPatientById',
+      nutritionistId: userId,
+      patientId: params.id
+    })
+    
+    const patient = response?.patient || response
+    if (!patient || patient.error) {
       return NextResponse.json({ error: 'Paciente não encontrado' }, { status: 404 })
     }
 
@@ -40,11 +46,6 @@ export async function PATCH(
     const { userId } = auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const patient = await getPatientById(params.id)
-    if (!patient || patient.nutritionist_id !== userId) {
-      return NextResponse.json({ error: 'Paciente não encontrado' }, { status: 404 })
-    }
-
     const body = await req.json()
     const parsed = patientUpdateSchema.safeParse(body)
 
@@ -52,7 +53,14 @@ export async function PATCH(
       return NextResponse.json({ error: 'Dados inválidos', details: parsed.error.format() }, { status: 400 })
     }
 
-    const updatedPatient = await updatePatient(params.id, parsed.data)
+    const response: any = await triggerN8nWorkflow('nutriflow', {
+      action: 'updatePatient',
+      nutritionistId: userId,
+      patientId: params.id,
+      ...parsed.data
+    })
+
+    const updatedPatient = response?.patient || response
     return NextResponse.json(updatedPatient)
   } catch (error) {
     console.error('Erro ao atualizar paciente:', error)
@@ -68,15 +76,20 @@ export async function DELETE(
     const { userId } = auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const patient = await getPatientById(params.id)
-    if (!patient || patient.nutritionist_id !== userId) {
-      return NextResponse.json({ error: 'Paciente não encontrado' }, { status: 404 })
-    }
+    // Em vez de deletar o registro físico do Airtable, 
+    // apenas alteramos o status para "Inativo" para preservar o histórico.
+    await triggerN8nWorkflow('nutriflow', {
+      action: 'updatePatient',
+      nutritionistId: userId,
+      patientId: params.id,
+      status: 'Inativo'
+    })
 
-    await updatePatient(params.id, { status: 'Inativo' })
-    return NextResponse.json({ success: true }, { status: 200 })
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Erro ao excluir paciente:', error)
+    console.error('Erro ao inativar paciente:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
+
+
