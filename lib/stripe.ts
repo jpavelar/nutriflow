@@ -1,7 +1,9 @@
 import Stripe from 'stripe'
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-04-10', // Changed to nearest supported TS API version, Stripe drops old ones frequently in definitions.
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_dummy';
+
+export const stripe = new Stripe(stripeSecretKey, {
+  apiVersion: '2024-04-10',
   typescript: true,
 })
 

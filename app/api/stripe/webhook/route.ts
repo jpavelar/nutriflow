@@ -5,6 +5,8 @@ import Stripe from 'stripe'
 // TODO [DEV]: importar funções do Airtable quando implementadas
 // import { createNutritionist, deactivateNutritionist, markNutritionistInadimplente } from '@/lib/airtable'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: Request) {
   const body = await req.text()
   const sig = req.headers.get('stripe-signature') as string

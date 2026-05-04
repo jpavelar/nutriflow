@@ -20,8 +20,11 @@ import type { Nutritionist, Patient, Plan, Anamnesis } from '@/types'
 //     tokens_consumidos)
 // ═══════════════════════════════════════════════════════
 
-const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
-  .base(process.env.AIRTABLE_BASE_ID!)
+const airtableApiKey = process.env.AIRTABLE_API_KEY || 'dummy_key';
+const airtableBaseId = process.env.AIRTABLE_BASE_ID || 'dummy_base';
+
+const base = new Airtable({ apiKey: airtableApiKey })
+  .base(airtableBaseId)
 
 // ─── NUTRICIONISTAS ───────────────────────────────────
 

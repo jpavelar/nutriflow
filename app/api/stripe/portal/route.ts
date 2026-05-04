@@ -3,6 +3,8 @@ import { auth } from '@clerk/nextjs/server'
 import { createCustomerPortalSession } from '@/lib/stripe'
 import { getNutritionistByClerkId } from '@/lib/airtable'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: Request) {
   try {
     const { userId } = auth()
