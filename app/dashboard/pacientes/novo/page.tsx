@@ -20,7 +20,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
+} from "@/components/ui/form-ui"
 
 const formSchema = z.object({
   name: z.string().min(3, 'Mínimo 3 caracteres'),
