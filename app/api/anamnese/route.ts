@@ -9,6 +9,7 @@ const anamnesisSchema = z.object({
   pdfData: z.string(), // base64
   fileName: z.string(),
   message: z.string().optional().default(''),
+  tipo: z.string().optional().default('anamnese'),
 })
 
 export async function POST(req: Request) {
@@ -30,7 +31,8 @@ export async function POST(req: Request) {
       patientId: parsed.data.patient_id,
       pdfData: parsed.data.pdfData,
       fileName: parsed.data.fileName,
-      message: parsed.data.message
+      message: parsed.data.message,
+      tipo: parsed.data.tipo
     })
 
     return NextResponse.json({ success: true, response }, { status: 201 })
