@@ -3,13 +3,6 @@ import { auth } from '@clerk/nextjs/server'
 import { triggerN8nWorkflow } from '@/lib/n8n'
 import { z } from 'zod'
 
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-}
 
 const anamnesisSchema = z.object({
   patient_id: z.string(),

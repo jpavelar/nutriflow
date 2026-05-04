@@ -4,13 +4,6 @@ import { createPlan, getPatientPlans, getPatientById } from '@/lib/airtable'
 import { triggerN8nWorkflow } from '@/lib/n8n'
 import { z } from 'zod'
  
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-}
 
 const planSchema = z.object({
   patient_id: z.string(),
