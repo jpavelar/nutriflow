@@ -93,7 +93,21 @@ export async function GET(req: Request) {
       nutritionistId: userId
     })
 
-    const plans = Array.isArray(response) ? response : response?.plans || []
+    const rawPlans = Array.isArray(response) ? response : response?.plans || []
+    
+    const plans = rawPlans.map((pl: any) => {
+      const fields = pl.fields || pl;
+      const jsonFields = pl.json?.fields || pl.json || {};
+
+      return {
+        id: pl.id || pl.json?.id,
+        name: fields.name || fields.Name || jsonFields.name || jsonFields.Name || 'Plano Alimentar',
+        pdf_url: fields.url_pdf || fields['URL do PDF']?.[0]?.url || jsonFields.url_pdf || jsonFields['URL do PDF']?.[0]?.url || pl.pdf_url,
+        sent_at: fields.enviado_em || fields.sent_at || jsonFields.enviado_em || jsonFields.sent_at || pl.sent_at || pl.createdTime,
+        version: fields.versao || fields.version || jsonFields.versao || jsonFields.version || pl.version
+      };
+    });
+
     return NextResponse.json(plans)
   } catch (error) {
     console.error('Erro ao buscar planos:', error)

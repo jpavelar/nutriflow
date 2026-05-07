@@ -277,19 +277,41 @@ export default function PacienteDetailsPage() {
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
               <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                  <FileText className="text-blue-500" size={18} /> Anamnese Atual
+                  <FileText className="text-blue-500" size={18} /> Anamneses
                 </h3>
               </div>
               <div className="p-6">
-                {patient.goal_attachment?.[0] || patient.Objetivo?.[0] ? (
+                {anamneses.length > 0 ? (
+                  <div className="space-y-3">
+                    {anamneses.map((an: any) => (
+                      <div key={an.id} className="flex items-center justify-between p-3 bg-blue-50/30 rounded-lg border border-blue-100">
+                        <div className="flex items-center gap-3">
+                          <FileText className="text-blue-400" size={18} />
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">Anamnese</p>
+                            <p className="text-[10px] text-gray-500 uppercase">{new Date(an.created_at).toLocaleDateString('pt-BR')}</p>
+                          </div>
+                        </div>
+                        <a 
+                          href={an.pdf_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="p-1.5 text-blue-600 hover:bg-white rounded transition-all"
+                        >
+                          <Download size={16} />
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                ) : patient.goal_attachment?.[0] || patient.Objetivo?.[0] ? (
                   <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-100">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded flex items-center justify-center">
                         <Download size={20} />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-blue-900">PDF da Anamnese</p>
-                        <p className="text-xs text-blue-700">Enviado em: {patient.created_at ? new Date(patient.created_at).toLocaleDateString('pt-BR') : 'Recentemente'}</p>
+                        <p className="text-sm font-bold text-blue-900">PDF da Anamnese (Airtable)</p>
+                        <p className="text-xs text-blue-700">Vínculo direto</p>
                       </div>
                     </div>
                     <a 
@@ -303,7 +325,7 @@ export default function PacienteDetailsPage() {
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500 italic text-sm">
-                    Nenhuma anamnese em PDF cadastrada.
+                    Nenhuma anamnese cadastrada.
                   </div>
                 )}
               </div>
@@ -326,11 +348,11 @@ export default function PacienteDetailsPage() {
                           <FileText className="text-gray-400" size={18} />
                           <div>
                             <p className="text-sm font-semibold text-gray-900">{plan.name || 'Plano Alimentar'}</p>
-                            <p className="text-[10px] text-gray-500 uppercase">{plan.sent_at || plan.created_at}</p>
+                            <p className="text-[10px] text-gray-500 uppercase">{plan.sent_at ? new Date(plan.sent_at).toLocaleDateString('pt-BR') : 'Data não informada'}</p>
                           </div>
                         </div>
                         <a 
-                          href={plan.pdf_url || plan['URL do PDF']?.[0]?.url} 
+                          href={plan.pdf_url} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="p-1.5 text-verde-primario hover:bg-white rounded transition-all"

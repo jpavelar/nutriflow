@@ -6,9 +6,10 @@ import { z } from 'zod'
 const patientUpdateSchema = z.object({
   name: z.string().min(3, 'Mínimo 3 caracteres').optional(),
   whatsapp: z.string().regex(/^\+55\d{2}9?\d{8}$/, 'Formato inválido. Use: +5511999999999').optional(),
-  goal: z.enum(['Emagrecimento', 'Ganho de massa', 'Saúde geral', 'Outro']).optional(),
+  goal: z.string().optional(), // Mais flexível que enum estrito
   restrictions: z.string().optional(),
-  next_appointment: z.string().datetime().optional().nullable(),
+  notes: z.string().optional(),
+  next_appointment: z.string().optional().nullable().transform(val => val ? new Date(val).toISOString() : null),
   status: z.enum(['Ativo', 'Inativo', 'Pausado']).optional(),
 }).partial()
 
