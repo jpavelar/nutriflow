@@ -90,23 +90,42 @@ export async function GET(req: Request) {
     const response: any = await triggerN8nWorkflow('nutriflow', {
       action: 'getPatientPlans',
       patientId: patient_id,
-      nutritionistId: userId
+      nutritionistId: userId,
+      tipo: 'plano'
     })
 
-    const rawPlans = Array.isArray(response) ? response : response?.plans || []
+    const rawPlans = Array.isArray(response) ? response : (response?.plans || response?.records || response?.data || [])
     
     const plans = rawPlans.map((pl: any) => {
       const fields = pl.fields || pl;
       const jsonFields = pl.json?.fields || pl.json || {};
 
+      // Busca exaustiva pela URL do PDF
+      const pdf_url = 
+        fields.url_pdf || fields.pdf_url || fields['URL do PDF']?.[0]?.url || fields['PDF']?.[0]?.url || fields['Arquivo']?.[0]?.url ||
+        jsonFields.url_pdf || jsonFields.pdf_url || jsonFields['URL do PDF']?.[0]?.url || jsonFields['PDF']?.[0]?.url ||
+        pl.pdf_url || pl.url_pdf;
+
+      // Busca exaustiva pela data
+      const sent_at = 
+        fields.enviado_em || fields.sent_at || fields.created_at || fields.date ||
+        jsonFields.enviado_em || jsonFields.sent_at || jsonFields.created_at ||
+        pl.sent_at || pl.created_at || pl.createdTime;
+
+      // Busca exaustiva pelo nome
+      const name = 
+        fields.name || fields.Name || fields.titulo || fields.Title ||
+        jsonFields.name || jsonFields.Name || jsonFields.titulo ||
+        pl.name || 'Plano Alimentar';
+
       return {
-        id: pl.id || pl.json?.id,
-        name: fields.name || fields.Name || jsonFields.name || jsonFields.Name || 'Plano Alimentar',
-        pdf_url: fields.url_pdf || fields['URL do PDF']?.[0]?.url || jsonFields.url_pdf || jsonFields['URL do PDF']?.[0]?.url || pl.pdf_url,
-        sent_at: fields.enviado_em || fields.sent_at || jsonFields.enviado_em || jsonFields.sent_at || pl.sent_at || pl.createdTime,
-        version: fields.versao || fields.version || jsonFields.versao || jsonFields.version || pl.version
+        id: pl.id || pl.json?.id || pl.ID,
+        name,
+        pdf_url,
+        sent_at,
+        version: fields.versao || fields.version || pl.version
       };
-    });
+    }).filter((pl: any) => pl.pdf_url); // Só mostra se tiver URL
 
     return NextResponse.json(plans)
   } catch (error) {

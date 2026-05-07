@@ -58,22 +58,35 @@ export async function GET(req: Request) {
     const response: any = await triggerN8nWorkflow('nutriflow', {
       action: 'getPatientAnamneses',
       patientId: patient_id,
-      nutritionistId: userId
+      nutritionistId: userId,
+      tipo: 'anamnese'
     })
 
-    const rawAnamneses = Array.isArray(response) ? response : response?.anamneses || []
+    const rawAnamneses = Array.isArray(response) ? response : (response?.anamneses || response?.records || response?.data || [])
     
     const anamneses = rawAnamneses.map((an: any) => {
       const fields = an.fields || an;
       const jsonFields = an.json?.fields || an.json || {};
 
+      // Busca exaustiva pela URL do PDF
+      const pdf_url = 
+        fields.url_pdf || fields.pdf_url || fields['URL do PDF']?.[0]?.url || fields['PDF']?.[0]?.url || fields['Arquivo']?.[0]?.url ||
+        jsonFields.url_pdf || jsonFields.pdf_url || jsonFields['URL do PDF']?.[0]?.url || jsonFields['PDF']?.[0]?.url ||
+        an.pdf_url || an.url_pdf;
+
+      // Busca exaustiva pela data
+      const created_at = 
+        fields.data_upload || fields.created_at || fields.date ||
+        jsonFields.data_upload || jsonFields.created_at ||
+        an.created_at || an.created_at || an.createdTime;
+
       return {
-        id: an.id || an.json?.id,
-        pdf_url: fields.url_pdf || fields['URL do PDF']?.[0]?.url || jsonFields.url_pdf || jsonFields['URL do PDF']?.[0]?.url || an.pdf_url,
-        created_at: fields.data_upload || fields.created_at || jsonFields.data_upload || jsonFields.created_at || an.created_at || an.createdTime,
+        id: an.id || an.json?.id || an.ID,
+        pdf_url,
+        created_at,
         notes: fields.observacoes || fields.notes || jsonFields.observacoes || jsonFields.notes || an.notes
       };
-    });
+    }).filter((an: any) => an.pdf_url);
 
     return NextResponse.json(anamneses)
   } catch (error) {

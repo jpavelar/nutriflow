@@ -79,7 +79,8 @@ export async function GET(req: Request) {
       const response: any = await triggerN8nWorkflow('nutriflow', {
         action: 'getPatientById',
         nutritionistId: userId,
-        patientId: id
+        patientId: id,
+        tipo: 'paciente'
       })
       
       const rawPatient = response?.patient || response
