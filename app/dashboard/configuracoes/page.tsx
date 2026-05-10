@@ -1,20 +1,11 @@
 "use client"
 
-import { useState } from 'react'
-import { Lock, Save, CreditCard, ExternalLink, Trash2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Save } from 'lucide-react'
 import { toast } from 'sonner'
-import { useUser, useClerk } from '@clerk/nextjs'
+import { useUser } from '@clerk/nextjs'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 
 // Mock
 const MOCK_NUTRITIONIST = {
@@ -29,8 +20,7 @@ const MOCK_NUTRITIONIST = {
 
 export default function ConfiguracoesPage() {
   const { user } = useUser()
-  const { signOut } = useClerk()
-  
+
   const [perfil, setPerfil] = useState({
     nome: user?.fullName || '',
     especialidade: MOCK_NUTRITIONIST.specialty,
@@ -42,8 +32,38 @@ export default function ConfiguracoesPage() {
     palavras: MOCK_NUTRITIONIST.palavras_fallback,
   })
 
-  const [deleteInput, setDeleteInput] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const res = await fetch('/api/configuracoes')
+        if (res.ok) {
+          const data = await res.json()
+          if (data) {
+            setPerfil({
+              nome: data.nome || data.Nome || user?.fullName || '',
+              especialidade: data.especialidade || data.Especialidade || MOCK_NUTRITIONIST.specialty,
+              whatsapp: data.whatsapp_pessoal || data['WhatsApp pessoal'] || MOCK_NUTRITIONIST.whatsapp_pessoal,
+            })
+            setAgente({
+              prompt: data.system_prompt || data['System Prompt'] || MOCK_NUTRITIONIST.system_prompt,
+              palavras: data.palavras_fallback || data['Palavras de fallback'] || MOCK_NUTRITIONIST.palavras_fallback,
+            })
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao carregar configurações:', e)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (user) {
+      fetchData()
+    }
+  }, [user])
 
   const handleSavePerfil = async () => {
     setIsSaving(true)
@@ -79,18 +99,13 @@ export default function ConfiguracoesPage() {
     }
   }
 
-  const handleManageSubscription = async () => {
-    try {
-      const res = await fetch('/api/stripe/portal', { method: 'POST' })
-      const data = await res.json()
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        throw new Error()
-      }
-    } catch (e) {
-      toast.error('Erro ao acessar o portal de assinaturas')
-    }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-verde-primario"></div>
+      </div>
+    )
   }
 
   return (
@@ -109,32 +124,32 @@ export default function ConfiguracoesPage() {
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Nome profissional</label>
-              <Input 
-                value={perfil.nome} 
-                onChange={e => setPerfil({...perfil, nome: e.target.value})} 
+              <Input
+                value={perfil.nome}
+                onChange={e => setPerfil({ ...perfil, nome: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Especialidade</label>
-              <Input 
+              <Input
                 placeholder="Ex: Nutrição Clínica"
-                value={perfil.especialidade} 
-                onChange={e => setPerfil({...perfil, especialidade: e.target.value})} 
+                value={perfil.especialidade}
+                onChange={e => setPerfil({ ...perfil, especialidade: e.target.value })}
               />
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">WhatsApp pessoal</label>
-              <Input 
+              <Input
                 placeholder="+5511999999999"
-                value={perfil.whatsapp} 
-                onChange={e => setPerfil({...perfil, whatsapp: e.target.value})} 
+                value={perfil.whatsapp}
+                onChange={e => setPerfil({ ...perfil, whatsapp: e.target.value })}
               />
               <p className="text-xs text-gray-500 mt-1.5">
                 Você receberá alertas de fallback neste número quando um paciente mandar mensagem sobre sintomas ou emergências.
               </p>
             </div>
           </div>
-          <button 
+          <button
             onClick={handleSavePerfil}
             className="mt-2 bg-verde-primario text-white px-5 py-2 rounded-lg font-medium hover:bg-verde-escuro transition-colors"
           >
@@ -148,7 +163,7 @@ export default function ConfiguracoesPage() {
         <div className="p-5 border-b border-gray-200">
           <h3 className="font-bold text-gray-900">Agente de IA</h3>
         </div>
-        
+
         {MOCK_NUTRITIONIST.plan === 'Essencial' ? (
           <div className="p-12 flex flex-col items-center justify-center text-center bg-gray-50">
             <Lock className="text-gray-400 mb-4" size={32} />
@@ -165,26 +180,26 @@ export default function ConfiguracoesPage() {
               <p className="text-xs text-gray-500 mb-2">
                 Defina como o agente deve se comportar, o tom de voz e os limites do que pode responder.
               </p>
-              <Textarea 
+              <Textarea
                 className="min-h-[200px]"
                 value={agente.prompt}
-                onChange={e => setAgente({...agente, prompt: e.target.value})}
+                onChange={e => setAgente({ ...agente, prompt: e.target.value })}
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Palavras de fallback (uma por linha)</label>
               <p className="text-xs text-gray-500 mb-2">
                 Quando o paciente usar essas palavras, você receberá uma notificação imediata.
               </p>
-              <Textarea 
+              <Textarea
                 className="min-h-[120px]"
                 value={agente.palavras}
-                onChange={e => setAgente({...agente, palavras: e.target.value})}
+                onChange={e => setAgente({ ...agente, palavras: e.target.value })}
               />
             </div>
 
-            <button 
+            <button
               onClick={handleSaveAgente}
               className="bg-verde-primario text-white px-5 py-2 rounded-lg font-medium hover:bg-verde-escuro transition-colors flex items-center gap-2"
             >
@@ -194,107 +209,7 @@ export default function ConfiguracoesPage() {
         )}
       </div>
 
-      {/* CARD 3 — Assinatura */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-gray-200">
-          <h3 className="font-bold text-gray-900">Assinatura</h3>
-        </div>
-        <div className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${
-                MOCK_NUTRITIONIST.plan === 'Pro' ? 'bg-blue-100 text-blue-800' :
-                MOCK_NUTRITIONIST.plan === 'Clínica' ? 'bg-purple-100 text-purple-800' :
-                'bg-green-100 text-green-800'
-              }`}>
-                Plano {MOCK_NUTRITIONIST.plan}
-              </span>
-              {MOCK_NUTRITIONIST.trial_active && (
-                <span className="px-3 py-1 text-xs font-bold uppercase rounded-full bg-orange-100 text-orange-800">
-                  Trial Gratuito
-                </span>
-              )}
-            </div>
-            {MOCK_NUTRITIONIST.trial_active ? (
-              <p className="text-sm text-gray-600 font-medium">Trial encerra em {MOCK_NUTRITIONIST.trial_days_left} dias</p>
-            ) : (
-              <p className="text-sm text-gray-600">Próxima cobrança: 15/05/2026</p>
-            )}
-          </div>
-          
-          <div className="w-full md:w-auto flex flex-col gap-2">
-            <button 
-              onClick={handleManageSubscription}
-              className="w-full md:w-auto bg-white border border-gray-300 text-gray-700 px-5 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-            >
-              <CreditCard size={18} /> Gerenciar assinatura <ExternalLink size={14} />
-            </button>
-            <p className="text-[11px] text-gray-500 text-center max-w-[250px]">
-              Para cancelar, downgrade ou alterar método de pagamento, use o portal.
-            </p>
-          </div>
-        </div>
-      </div>
 
-      {/* CARD 4 — Conta */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-gray-200">
-          <h3 className="font-bold text-gray-900">Conta</h3>
-        </div>
-        <div className="p-6 space-y-6">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">E-mail de acesso</label>
-              <Input value={user?.primaryEmailAddress?.emailAddress || ''} disabled />
-            </div>
-          </div>
-          
-          <div>
-            {/* O Clerk UserProfile Modal seria chamado aqui na implementação real */}
-            <button className="text-verde-primario text-sm font-medium hover:underline">
-              Alterar senha ou e-mail
-            </button>
-          </div>
-
-          <div className="border border-red-200 bg-red-50/50 rounded-lg p-5 mt-8">
-            <h4 className="font-bold text-red-600 mb-2">Excluir conta</h4>
-            <p className="text-sm text-gray-600 mb-4">Esta ação é irreversível. Todos os dados serão permanentemente removidos.</p>
-            
-            <Dialog>
-              <DialogTrigger asChild>
-                <button className="border border-red-200 text-red-600 bg-white px-4 py-2 rounded-md font-medium hover:bg-red-50 transition-colors flex items-center gap-2 text-sm">
-                  <Trash2 size={16} /> Excluir minha conta
-                </button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle className="text-red-600">Excluir conta definitivamente</DialogTitle>
-                  <DialogDescription>
-                    Esta ação não pode ser desfeita. Isso excluirá permanentemente sua conta, pacientes, planos e todo o histórico.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="my-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Digite EXCLUIR para confirmar</label>
-                  <Input 
-                    value={deleteInput} 
-                    onChange={e => setDeleteInput(e.target.value)}
-                    placeholder="EXCLUIR"
-                  />
-                </div>
-                <DialogFooter>
-                  <button 
-                    disabled={deleteInput !== 'EXCLUIR'}
-                    onClick={() => signOut()}
-                    className="bg-red-600 text-white px-4 py-2 rounded-md font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
-                  >
-                    Confirmar Exclusão
-                  </button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

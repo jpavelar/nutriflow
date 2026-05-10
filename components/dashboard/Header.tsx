@@ -7,6 +7,7 @@ import { UserButton } from '@clerk/nextjs'
 import { toast } from 'sonner'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Sidebar } from './Sidebar'
+import { NotificationBell } from './NotificationBell'
 
 const routeNames: Record<string, string> = {
   '/dashboard': 'Visão geral',
@@ -62,10 +63,7 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-4">
-        <button className="text-gray-400 hover:text-gray-600 relative">
-          <Bell size={20} />
-          <span className="absolute top-0 right-0 w-2 h-2 bg-laranja rounded-full"></span>
-        </button>
+        <NotificationBell />
         <div className="md:hidden">
           <UserButton afterSignOutUrl="/" />
         </div>

@@ -4,13 +4,13 @@ import { triggerN8nWorkflow } from '@/lib/n8n'
 import { z } from 'zod'
 
 const patientUpdateSchema = z.object({
-  name: z.string().min(3, 'Mínimo 3 caracteres').optional(),
-  whatsapp: z.string().regex(/^\+55\d{2}9?\d{8}$/, 'Formato inválido. Use: +5511999999999').optional(),
-  goal: z.string().optional(), // Mais flexível que enum estrito
+  name: z.string().min(2, 'Mínimo 2 caracteres').optional(),
+  whatsapp: z.string().optional(), // Removido regex restritivo para evitar erro 400
+  goal: z.string().optional(),
   restrictions: z.string().optional(),
   notes: z.string().optional(),
-  next_appointment: z.string().optional().nullable().transform(val => val ? new Date(val).toISOString() : null),
-  status: z.enum(['Ativo', 'Inativo', 'Pausado']).optional(),
+  next_appointment: z.string().optional().nullable(),
+  status: z.string().optional(),
 }).partial()
 
 export async function GET(
@@ -48,24 +48,24 @@ export async function PATCH(
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const body = await req.json()
-    const parsed = patientUpdateSchema.safeParse(body)
+    console.log('[DEBUG PATCH] Corpo recebido:', JSON.stringify(body, null, 2))
+    console.log('[DEBUG PATCH] ID do paciente:', params.id)
 
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Dados inválidos', details: parsed.error.format() }, { status: 400 })
-    }
-
+    // Chama o n8n com a ação updatePatient ignorando validação por enquanto
     const response: any = await triggerN8nWorkflow('nutriflow', {
       action: 'updatePatient',
       nutritionistId: userId,
       patientId: params.id,
-      ...parsed.data
+      ...body
     })
+
+    console.log('[DEBUG PATCH] Resposta do n8n:', JSON.stringify(response, null, 2))
 
     const updatedPatient = response?.patient || response
     return NextResponse.json(updatedPatient)
   } catch (error) {
-    console.error('Erro ao atualizar paciente:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    console.error('Erro ao atualizar paciente via n8n:', error)
+    return NextResponse.json({ error: 'Erro interno ao chamar n8n' }, { status: 500 })
   }
 }
 

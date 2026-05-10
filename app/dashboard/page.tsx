@@ -94,14 +94,20 @@ async function DashboardContent() {
         </Card>
 
         {/* Card 3 - Fallbacks */}
-        <Card>
+        <Card className={`transition-all duration-300 ${data.fallbacksPendentes > 0 ? 'border-red-200 bg-red-50/30 shadow-md ring-1 ring-red-500/20' : ''}`}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-medium text-gray-500 uppercase font-bold">Fallbacks</CardTitle>
-            <AlertTriangle size={16} className="text-red-500" />
+            <CardTitle className={`text-xs font-medium uppercase font-bold ${data.fallbacksPendentes > 0 ? 'text-red-600' : 'text-gray-500'}`}>
+              Fallbacks
+            </CardTitle>
+            <AlertTriangle size={16} className={data.fallbacksPendentes > 0 ? 'text-red-600 animate-bounce' : 'text-red-500'} />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{data.fallbacksPendentes}</div>
-            <p className="text-xs text-gray-500 mt-1">Atenção necessária</p>
+            <div className={`text-3xl font-bold ${data.fallbacksPendentes > 0 ? 'text-red-700' : ''}`}>
+              {data.fallbacksPendentes}
+            </div>
+            <p className={`text-xs mt-1 ${data.fallbacksPendentes > 0 ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
+              {data.fallbacksPendentes > 0 ? 'Ação urgente necessária' : 'Atenção necessária'}
+            </p>
           </CardContent>
         </Card>
       </div>

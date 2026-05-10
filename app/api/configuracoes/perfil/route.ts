@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { updateNutritionist } from '@/lib/airtable'
+import { triggerN8nWorkflow } from '@/lib/n8n'
 
 export async function PATCH(req: Request) {
   try {
@@ -10,8 +10,15 @@ export async function PATCH(req: Request) {
     const body = await req.json()
     const { nome, especialidade, whatsapp } = body
 
-    // TODO [DEV]: updateNutritionist(userId, { name: nome, specialty: especialidade, whatsapp_pessoal: whatsapp }) no Airtable
-    console.log('[API] Atualizando perfil:', { userId, nome, especialidade, whatsapp })
+    // Chama o n8n para atualizar o nutricionista no Airtable
+    const response = await triggerN8nWorkflow('nutriflow', {
+      action: 'syncNutritionist',
+      clerkUserId: userId,
+      'Nome': nome,
+      'WhatsApp pessoal': whatsapp
+    })
+
+    console.log('[API] Perfil atualizado via n8n:', response)
 
     return NextResponse.json({ success: true })
   } catch (error) {

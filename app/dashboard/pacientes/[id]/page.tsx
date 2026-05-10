@@ -20,26 +20,46 @@ export default function PacienteDetailsPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [patient, setPatient] = useState<any>(null)
   const [plans, setPlans] = useState<any[]>([])
+  const [anamneses, setAnamneses] = useState<any[]>([])
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
   const [isEditing, setIsEditing] = useState(searchParams?.get('edit') === 'true')
 
-  const [editedPatient, setEditedPatient] = useState<any>(null)
+  const [editedPatient, setEditedPatient] = useState<any>({})
 
   async function fetchData() {
     setLoading(true)
     try {
-      // Buscar dados do paciente
-      const pRes = await fetch(`/api/pacientes?id=${patientId}`)
+      // Buscar dados do paciente (forçando sem cache)
+      const pRes = await fetch(`/api/pacientes?id=${patientId}`, { cache: 'no-store' })
       if (pRes.ok) {
         const data = await pRes.json()
         const p = Array.isArray(data) ? data[0] : data
         setPatient(p)
         setEditedPatient(p)
+        
+        // Se o paciente tiver um PDF vinculado diretamente, adiciona na lista
+        if (p.url_pdf) {
+          setAnamneses([{ 
+            id: 'anamnese-atual', 
+            url_pdf: p.url_pdf, 
+            pdf_url: p.url_pdf, // para compatibilidade
+            created_at: p.created_at || new Date().toISOString() 
+          }])
+        }
       }
 
       // Buscar planos
-      const plRes = await fetch(`/api/planos?patient_id=${patientId}`)
+      const plRes = await fetch(`/api/planos?patient_id=${patientId}`, { cache: 'no-store' })
       if (plRes.ok) setPlans(await plRes.json())
+
+      // Buscar lista de anamneses (todas as versões)
+      const anRes = await fetch(`/api/anamnese?patient_id=${patientId}`, { cache: 'no-store' })
+      if (anRes.ok) {
+        const list = await anRes.json()
+        if (Array.isArray(list) && list.length > 0) {
+          setAnamneses(list)
+        }
+      }
 
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
@@ -157,61 +177,34 @@ export default function PacienteDetailsPage() {
         </div>
       </div>
 
-      {/* Abas */}
-      <Tabs defaultValue="info" className="w-full">
-        <TabsList className="bg-white border border-gray-200 mb-6 p-1 h-auto rounded-lg inline-flex w-full overflow-x-auto justify-start md:w-auto">
-          <TabsTrigger value="info" className="data-[state=active]:bg-verde-claro data-[state=active]:text-verde-escuro rounded-md px-6 py-2.5 font-medium">Informações</TabsTrigger>
-          <TabsTrigger value="documentos" className="data-[state=active]:bg-verde-claro data-[state=active]:text-verde-escuro rounded-md px-6 py-2.5 font-medium">Planos e Anamneses</TabsTrigger>
-          <TabsTrigger value="historico" className="data-[state=active]:bg-verde-claro data-[state=active]:text-verde-escuro rounded-md px-6 py-2.5 font-medium">Histórico (IA)</TabsTrigger>
-        </TabsList>
+      {/* Layout Unificado — Tudo em uma tela */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Coluna 1 — Informações Clínicas */}
+        <div className="lg:col-span-2 space-y-6">
 
-        {/* ABA 1 — Informações */}
-        <TabsContent value="info" className="focus-visible:outline-none">
+
+          <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8 shadow-sm">
+            <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <FileText className="text-verde-primario" size={20} /> Informações Clínicas
+            </h3>
+
           <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8">
             <div className="grid md:grid-cols-2 gap-8">
               <div className="space-y-6">
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Objetivo principal</h4>
-                  {isEditing ? (
-                    <Select value={editedPatient.goal} onValueChange={(val) => setEditedPatient({...editedPatient, goal: val})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o objetivo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Emagrecimento">Emagrecimento</SelectItem>
-                        <SelectItem value="Ganho de massa">Ganho de massa</SelectItem>
-                        <SelectItem value="Saúde geral">Saúde geral</SelectItem>
-                        <SelectItem value="Outro">Outro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <p className="text-gray-900 font-medium">{patient.goal || 'Não informado'}</p>
-                  )}
-                </div>
+
                 <div>
                   <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Restrições alimentares</h4>
                   {isEditing ? (
                     <Textarea 
                       value={editedPatient.restrictions || ''} 
                       onChange={(e) => setEditedPatient({...editedPatient, restrictions: e.target.value})}
-                      className="resize-none"
+                      className="min-h-[250px] resize-y"
                     />
                   ) : (
-                    <p className="text-gray-900">{patient.restrictions || 'Nenhuma restrição informada.'}</p>
+                    <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">{patient.restrictions || 'Nenhuma restrição informada.'}</p>
                   )}
                 </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Observações</h4>
-                  {isEditing ? (
-                    <Textarea 
-                      value={editedPatient.notes || ''} 
-                      onChange={(e) => setEditedPatient({...editedPatient, notes: e.target.value})}
-                      className="resize-none"
-                    />
-                  ) : (
-                    <p className="text-gray-900">{patient.notes || 'Nenhuma observação adicional.'}</p>
-                  )}
-                </div>
+
               </div>
               <div className="space-y-6">
                 <div>
@@ -239,16 +232,25 @@ export default function PacienteDetailsPage() {
                 </div>
                 <div>
                   <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Status do paciente</h4>
-                  <Select value={patient.status || 'Ativo'} onValueChange={handleUpdateStatus} disabled={actionLoading}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Ativo">Ativo</SelectItem>
-                      <SelectItem value="Pausado">Pausado</SelectItem>
-                      <SelectItem value="Inativo">Inativo</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    {['Ativo', 'Pausado', 'Inativo'].map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => {
+                          console.log('Alterando status para:', s);
+                          setEditedPatient({...editedPatient, status: s});
+                        }}
+                        className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                          (editedPatient?.status || patient?.status || 'Ativo') === s
+                            ? 'bg-verde-primario text-white border-verde-primario shadow-sm'
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div className="bg-orange-50 border border-orange-100 rounded-lg p-4 flex gap-3">
                   <Calendar className="text-laranja shrink-0" />
@@ -268,11 +270,12 @@ export default function PacienteDetailsPage() {
               </div>
             </div>
           </div>
-        </TabsContent>
+          </div>
+        </div>
 
-        {/* ABA 2 — Documentos (Planos e Anamneses) */}
-        <TabsContent value="documentos" className="focus-visible:outline-none">
-          <div className="grid md:grid-cols-2 gap-6">
+        {/* Coluna 2 — Documentos (Sidebar) */}
+        <div className="space-y-6">
+
             {/* Anamneses */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
               <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
@@ -303,7 +306,7 @@ export default function PacienteDetailsPage() {
                       </div>
                     ))}
                   </div>
-                ) : patient.goal_attachment?.[0] || patient.Objetivo?.[0] ? (
+                ) : (patient.url_pdf || patient.goal_attachment?.[0] || patient.Objetivo?.[0]) ? (
                   <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-100">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded flex items-center justify-center">
@@ -315,7 +318,7 @@ export default function PacienteDetailsPage() {
                       </div>
                     </div>
                     <a 
-                      href={(patient.goal_attachment?.[0]?.url || patient.Objetivo?.[0]?.url)} 
+                      href={patient.url_pdf || patient.goal_attachment?.[0]?.url || patient.Objetivo?.[0]?.url} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="p-2 bg-white text-blue-600 rounded-md hover:bg-blue-600 hover:text-white transition-all shadow-sm"
@@ -352,7 +355,7 @@ export default function PacienteDetailsPage() {
                           </div>
                         </div>
                         <a 
-                          href={plan.pdf_url} 
+                          href={plan.url_pdf || plan.pdf_url} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="p-1.5 text-verde-primario hover:bg-white rounded transition-all"
@@ -369,23 +372,9 @@ export default function PacienteDetailsPage() {
                 )}
               </div>
             </div>
-          </div>
-        </TabsContent>
+        </div>
+      </div>
 
-        {/* ABA 3 — Histórico */}
-        <TabsContent value="historico" className="focus-visible:outline-none">
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
-              <h3 className="font-bold text-gray-900">Interações e Evolução</h3>
-              <span className="text-sm text-gray-500 italic">Integrado com WhatsApp</span>
-            </div>
-            <div className="p-12 text-center text-gray-500">
-              <MessageSquare className="mx-auto h-12 w-12 text-gray-200 mb-4" />
-              <p className="text-sm">O histórico de logs do paciente está sendo processado.</p>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
     </div>
   )
 }
