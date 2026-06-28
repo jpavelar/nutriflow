@@ -2,33 +2,48 @@
 
 import { useSignIn, useSignUp, useClerk } from "@clerk/nextjs"
 
-export function LoginButton({ children, className, mode = "sign-in" }: { children: React.ReactNode, className?: string, mode?: "sign-in" | "sign-up" }) {
-  const { signIn } = useSignIn()
-  const { signUp } = useSignUp()
-  const { signOut, user } = useClerk()
+export function LoginButton({ children, className, mode = "sign-in" }: {
+  children: React.ReactNode
+  className?: string
+  mode?: "sign-in" | "sign-up"
+}) {
+  const { signIn, isLoaded: signInLoaded } = useSignIn()
+  const { signUp, isLoaded: signUpLoaded } = useSignUp()
+  const { signOut } = useClerk()
 
-  const handleLogin = async () => {
-    // Se o usuário já estiver logado, desloga primeiro para permitir a troca de conta
-    if (user) {
-      await signOut()
-    }
-
-    if (mode === "sign-in" && signIn) {
+  const triggerOAuth = async () => {
+    if (mode === "sign-in" && signIn && signInLoaded) {
       await signIn.authenticateWithRedirect({
         strategy: "oauth_google",
-        redirectUrl: "/dashboard",
+        redirectUrl: "/sso-callback",
         redirectUrlComplete: "/dashboard",
-        // @ts-ignore
-        prompt: "select_account"
+        oidcPrompt: "select_account",
       })
-    } else if (mode === "sign-up" && signUp) {
+    } else if (mode === "sign-up" && signUp && signUpLoaded) {
       await signUp.authenticateWithRedirect({
         strategy: "oauth_google",
-        redirectUrl: "/dashboard",
+        redirectUrl: "/sso-callback",
         redirectUrlComplete: "/dashboard",
-        // @ts-ignore
-        prompt: "select_account"
+        oidcPrompt: "select_account",
       })
+    }
+  }
+
+  const handleLogin = async () => {
+    try {
+      await triggerOAuth()
+    } catch (err: any) {
+      const isSessionIssue =
+        err?.message?.toLowerCase().includes("already signed in") ||
+        err?.errors?.some?.((e: any) =>
+          e.code === "session_exists" || e.code === "authorization_invalid"
+        )
+
+      if (isSessionIssue) {
+        window.location.href = '/dashboard'
+      } else {
+        console.error("Erro no login:", err)
+      }
     }
   }
 
