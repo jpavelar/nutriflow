@@ -22,8 +22,6 @@ export default clerkMiddleware(async (auth, req) => {
   if (!userId) {
     return NextResponse.redirect(new URL('/sign-in', req.url))
   }
-}, {
-  publishableKey: 'pk_live_Y2xlcmsubWV1bnV0cmlmbG93LmNvbS5iciQ',
 })
 
 export const config = {
