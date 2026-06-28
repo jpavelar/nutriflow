@@ -14,7 +14,7 @@ const anamnesisSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const body = await req.json()
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     }
 
     // Chama o n8n para processar o upload e atualizar o paciente no Airtable
-    const response: any = await triggerN8nWorkflow('nutriflow', {
+    const response: any = await triggerN8nWorkflow('nutriflow-v2', {
       action: 'uploadAndSend', 
       nutritionistId: userId,
       patientId: parsed.data.patient_id,
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const { searchParams } = new URL(req.url)
@@ -55,7 +55,7 @@ export async function GET(req: Request) {
     }
 
     // Buscar anamneses via N8N
-    const response: any = await triggerN8nWorkflow('nutriflow', {
+    const response: any = await triggerN8nWorkflow('nutriflow-v2', {
       action: 'getPatientAnamneses',
       patientId: patient_id,
       nutritionistId: userId,
@@ -91,6 +91,6 @@ export async function GET(req: Request) {
     return NextResponse.json(anamneses)
   } catch (error) {
     console.error('Erro ao buscar anamneses:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    return NextResponse.json([])
   }
 }

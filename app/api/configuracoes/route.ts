@@ -4,22 +4,21 @@ import { triggerN8nWorkflow } from '@/lib/n8n'
 
 export async function GET() {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     // Busca dados do nutricionista via n8n
-    const response: any = await triggerN8nWorkflow('nutriflow', {
-      action: 'syncNutritionist',
+    const response: any = await triggerN8nWorkflow('nutriflow-v2', {
+      action: 'getNutritionist',
       clerkUserId: userId
     })
 
-    // Se o n8n retornar um objeto com os campos, usamos ele.
-    // Se não, retornamos um objeto vazio para o frontend usar os valores padrão.
-    const nutritionist = response?.nutritionist || response || {}
+    const rawData = Array.isArray(response) ? response[0] : (response?.nutritionist || response)
+    const nutritionist = rawData || {}
     
     return NextResponse.json(nutritionist)
   } catch (error) {
     console.error('Erro ao buscar configurações:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    return NextResponse.json({})
   }
 }

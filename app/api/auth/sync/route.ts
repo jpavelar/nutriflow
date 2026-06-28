@@ -4,7 +4,7 @@ import { triggerN8nWorkflow } from '@/lib/n8n'
 
 export async function POST() {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     const user = await currentUser()
 
     if (!userId || !user) {
@@ -15,7 +15,7 @@ export async function POST() {
     const name = `${user.firstName || ''} ${user.lastName || ''}`.trim()
 
     // Dispara o n8n para sincronizar o nutricionista
-    await triggerN8nWorkflow('nutriflow', {
+    await triggerN8nWorkflow('nutriflow-v2', {
       action: 'syncNutritionist',
       clerkUserId: userId,
       email: email,
@@ -26,6 +26,6 @@ export async function POST() {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Erro ao sincronizar usuário:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    return NextResponse.json({ success: false })
   }
 }

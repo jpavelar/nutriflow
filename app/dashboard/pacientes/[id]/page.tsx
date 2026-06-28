@@ -1,6 +1,12 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+
+function safeDate(val: any): Date | null {
+  if (!val) return null
+  const d = new Date(val)
+  return isNaN(d.getTime()) ? null : d
+}
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import { ChevronRight, MessageSquare, Calendar, Download, Edit, Plus, FileText, Check, X } from 'lucide-react'
@@ -94,15 +100,25 @@ export default function PacienteDetailsPage() {
   const handleSaveEdit = async () => {
     setActionLoading(true)
     try {
+      // Converte next_appointment do horário local do browser para UTC ISO antes de enviar
+      const payload = {
+        ...editedPatient,
+        next_appointment: editedPatient.next_appointment
+          ? new Date(editedPatient.next_appointment).toISOString()
+          : null,
+      }
       const res = await fetch(`/api/pacientes/${patientId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editedPatient)
+        body: JSON.stringify(payload)
       })
       if (res.ok) {
         toast.success('Paciente atualizado com sucesso')
+        setPatient(editedPatient)
         setIsEditing(false)
-        await fetchData()
+        fetchData()
+      } else {
+        toast.error('Erro ao salvar alterações')
       }
     } catch (error) {
       toast.error('Erro ao salvar alterações')
@@ -257,13 +273,22 @@ export default function PacienteDetailsPage() {
                   <div className="flex-1">
                     <h4 className="text-sm font-bold text-orange-900 mb-1">Próxima consulta</h4>
                     {isEditing ? (
-                      <Input 
-                        type="datetime-local" 
-                        value={editedPatient.next_appointment ? new Date(editedPatient.next_appointment).toISOString().slice(0, 16) : ''} 
-                        onChange={(e) => setEditedPatient({...editedPatient, next_appointment: e.target.value})}
-                      />
+                      <div>
+                        <Input
+                          type="datetime-local"
+                          value={(() => {
+                            const d = safeDate(editedPatient.next_appointment)
+                            if (!d) return ''
+                            // Mostra no horário local do browser (remove offset UTC)
+                            const offset = d.getTimezoneOffset() * 60000
+                            return new Date(d.getTime() - offset).toISOString().slice(0, 16)
+                          })()}
+                          onChange={(e) => setEditedPatient({...editedPatient, next_appointment: e.target.value || null})}
+                        />
+                        <p className="text-xs text-orange-700 mt-1">Preencha data e horário</p>
+                      </div>
                     ) : (
-                      <p className="text-orange-800 font-medium">{patient.next_appointment ? new Date(patient.next_appointment).toLocaleString('pt-BR') : 'Não agendada'}</p>
+                      <p className="text-orange-800 font-medium">{safeDate(patient.next_appointment)?.toLocaleString('pt-BR') ?? 'Não agendada'}</p>
                     )}
                   </div>
                 </div>

@@ -10,7 +10,7 @@ export default function SignInPage() {
         </div>
         <p className="text-gray-600">Automatize seu atendimento. Foque nas consultas.</p>
       </div>
-      <SignIn />
+      <SignIn routing="path" path="/sign-in" />
     </div>
   );
 }

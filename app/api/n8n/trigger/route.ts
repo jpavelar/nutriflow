@@ -4,7 +4,7 @@ import { triggerN8nWorkflow } from '@/lib/n8n'
 
 export async function POST(req: Request) {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const body = await req.json()

@@ -17,7 +17,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      publishableKey="pk_live_Y2xlcmsubWV1bnV0cmlmbG93LmNvbS5iciQ"
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/dashboard"
+    >
       <html lang="pt-BR">
         <body className={inter.className}>
           {children}

@@ -15,7 +15,7 @@ const planSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const body = await req.json()
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     console.log("[api/planos] Enviando para o webhook unificado...");
     let n8nRes: any = {};
     try {
-      n8nRes = await triggerN8nWorkflow('nutriflow', {
+      n8nRes = await triggerN8nWorkflow('nutriflow-v2', {
         action: 'uploadAndSend',
         patientId: parsed.data.patient_id,
         pdfData: parsed.data.pdfData, // Base64
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const { searchParams } = new URL(req.url)
@@ -73,7 +73,7 @@ export async function GET(req: Request) {
     }
 
     // Buscar dados do paciente via N8N
-    const patientResponse: any = await triggerN8nWorkflow('nutriflow', {
+    const patientResponse: any = await triggerN8nWorkflow('nutriflow-v2', {
       action: 'getPatientById',
       patientId: patient_id,
       nutritionistId: userId
@@ -87,7 +87,7 @@ export async function GET(req: Request) {
     // const plans = await getPatientPlans(patient_id)
 
     // Buscar histórico de planos via N8N
-    const response: any = await triggerN8nWorkflow('nutriflow', {
+    const response: any = await triggerN8nWorkflow('nutriflow-v2', {
       action: 'getPatientPlans',
       patientId: patient_id,
       nutritionistId: userId,
@@ -130,6 +130,6 @@ export async function GET(req: Request) {
     return NextResponse.json(plans)
   } catch (error) {
     console.error('Erro ao buscar planos:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    return NextResponse.json([])
   }
 }

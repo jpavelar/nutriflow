@@ -10,7 +10,7 @@ export default function SignUpPage() {
         </div>
         <p className="text-gray-600 font-medium">Comece seu trial gratuito de 14 dias</p>
       </div>
-      <SignUp />
+      <SignUp routing="path" path="/sign-up" />
     </div>
   );
 }

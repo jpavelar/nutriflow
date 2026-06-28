@@ -4,11 +4,11 @@ import { triggerN8nWorkflow } from '@/lib/n8n'
 
 export async function GET() {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     // Busca notificações/fallbacks pendentes via n8n
-    const response: any = await triggerN8nWorkflow('nutriflow', {
+    const response: any = await triggerN8nWorkflow('nutriflow-v2', {
       action: 'getDashboardData',
       nutritionistId: userId
     })
@@ -20,19 +20,19 @@ export async function GET() {
     return NextResponse.json(notifications)
   } catch (error) {
     console.error('Erro ao buscar notificações:', error)
-    return NextResponse.json([], { status: 500 })
+    return NextResponse.json([])
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const { notificationId, action } = await req.json()
 
     // Ação para marcar como lida ou resolver o fallback
-    await triggerN8nWorkflow('nutriflow', {
+    await triggerN8nWorkflow('nutriflow-v2', {
       action: 'resolveNotification',
       nutritionistId: userId,
       notificationId,

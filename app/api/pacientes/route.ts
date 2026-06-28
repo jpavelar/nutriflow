@@ -26,7 +26,10 @@ function mapPatient(p: any) {
   const goal = fields.Objetivo || fields.goal || jsonFields.Objetivo || jsonFields.goal || p.goal;
   const restrictions = fields.Restrições || fields.restrictions || jsonFields.Restrições || jsonFields.restrictions || p.restrictions;
   const notes = fields.Observações || fields.notes || jsonFields.Observações || jsonFields.notes || p.notes;
-  const next_appointment = fields["Próxima consulta"] || fields.next_appointment || jsonFields["Próxima consulta"] || jsonFields.next_appointment || p.next_appointment;
+  const rawNextAppointment = fields["Próxima consulta"] || fields.next_appointment || jsonFields["Próxima consulta"] || jsonFields.next_appointment || p.next_appointment;
+  const next_appointment = typeof rawNextAppointment === 'string'
+    ? rawNextAppointment.replace(/^"|"$/g, '')
+    : rawNextAppointment;
   
   // Busca o link do PDF em qualquer lugar possível
   let url_pdf = fields.url_pdf || jsonFields.url_pdf || p.url_pdf;
@@ -69,7 +72,7 @@ function mapPatient(p: any) {
 
 export async function GET(req: Request) {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const { searchParams } = new URL(req.url)
@@ -80,7 +83,7 @@ export async function GET(req: Request) {
 
     // Se houver ID, busca apenas um paciente
     if (id) {
-      const response: any = await triggerN8nWorkflow('nutriflow', {
+      const response: any = await triggerN8nWorkflow('nutriflow-v2', {
         action: 'getPatientById',
         nutritionistId: userId,
         patientId: id,
@@ -97,7 +100,7 @@ export async function GET(req: Request) {
     }
 
     // Buscar lista de pacientes via N8N
-    const response = await triggerN8nWorkflow('nutriflow', {
+    const response = await triggerN8nWorkflow('nutriflow-v2', {
       action: 'getPatients',
       nutritionistId: userId,
       search,
@@ -132,14 +135,14 @@ export async function GET(req: Request) {
     return NextResponse.json(patients)
   } catch (error) {
     console.error('Erro ao buscar pacientes:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    return NextResponse.json([])
   }
 }
 
 
 export async function POST(req: Request) {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const body = await req.json()
@@ -149,7 +152,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Dados inválidos', details: parsed.error.format() }, { status: 400 })
     }
 
-    const newPatientResponse: any = await triggerN8nWorkflow('nutriflow', {
+    const newPatientResponse: any = await triggerN8nWorkflow('nutriflow-v2', {
       action: 'createPatient',
       nutritionistId: userId,
       ...parsed.data

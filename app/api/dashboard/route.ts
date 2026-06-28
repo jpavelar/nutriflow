@@ -4,11 +4,11 @@ import { triggerN8nWorkflow } from '@/lib/n8n'
 
 export async function GET() {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     // Solicita os dados do dashboard ao n8n
-    const response: any = await triggerN8nWorkflow('nutriflow', {
+    const response: any = await triggerN8nWorkflow('nutriflow-v2', {
       action: 'getDashboardData',
       nutritionistId: userId
     })
@@ -30,6 +30,6 @@ export async function GET() {
     return NextResponse.json(response)
   } catch (error) {
     console.error('Erro ao buscar dados do dashboard:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    return NextResponse.json({ pacientesAtivos: 0, interacoesSemana: 0, proximasConsultas: 0, fallbacksPendentes: 0, consultas: [], atividades: [] })
   }
 }

@@ -9,10 +9,10 @@ import { triggerN8nWorkflow } from '@/lib/n8n'
 
 async function getDashboardData() {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) return null
 
-    const response: any = await triggerN8nWorkflow('nutriflow', {
+    const response: any = await triggerN8nWorkflow('nutriflow-v2', {
       action: 'getDashboardData',
       nutritionistId: userId
     })
@@ -75,9 +75,11 @@ async function DashboardContent() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{data.pacientesAtivos}</div>
-            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-              +2 esta semana
-            </p>
+            {data.pacientesNovosSemana > 0 && (
+              <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                +{data.pacientesNovosSemana} esta semana
+              </p>
+            )}
           </CardContent>
         </Card>
 

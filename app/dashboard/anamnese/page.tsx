@@ -118,7 +118,11 @@ export default function AnamnesePage() {
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Paciente <span className="text-red-500">*</span></label>
           <Select value={patientId} onValueChange={setPatientId}>
             <SelectTrigger>
-              <SelectValue placeholder="Selecione um paciente" />
+              <SelectValue placeholder="Selecione um paciente">
+                {patientId
+                  ? (patients.find(p => p.id === patientId)?.name ?? patientId)
+                  : 'Selecione um paciente'}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {isLoadingPatients ? (
@@ -127,7 +131,7 @@ export default function AnamnesePage() {
                 <div className="p-2 text-center text-xs text-gray-500">Nenhum paciente encontrado</div>
               ) : (
                 patients.map(p => (
-                  <SelectItem key={p.id} value={p.id}>
+                  <SelectItem key={p.id} value={p.id} textValue={p.name}>
                     <div className="flex items-center gap-2">
                       <div className="w-5 h-5 rounded-full bg-verde-claro text-verde-escuro flex items-center justify-center font-bold text-[10px]">
                         {p.name?.charAt(0) || 'P'}

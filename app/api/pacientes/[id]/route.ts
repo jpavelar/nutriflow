@@ -18,10 +18,10 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const response: any = await triggerN8nWorkflow('nutriflow', {
+    const response: any = await triggerN8nWorkflow('nutriflow-v2', {
       action: 'getPatientById',
       nutritionistId: userId,
       patientId: params.id
@@ -44,22 +44,25 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const body = await req.json()
-    console.log('[DEBUG PATCH] Corpo recebido:', JSON.stringify(body, null, 2))
-    console.log('[DEBUG PATCH] ID do paciente:', params.id)
 
-    // Chama o n8n com a ação updatePatient ignorando validação por enquanto
-    const response: any = await triggerN8nWorkflow('nutriflow', {
+    const response: any = await triggerN8nWorkflow('nutriflow-v2', {
       action: 'updatePatient',
       nutritionistId: userId,
       patientId: params.id,
-      ...body
+      name: body.name,
+      whatsapp: body.whatsapp,
+      status: body.status,
+      restrictions: body.restrictions,
+      next_appointment_str: (() => {
+        if (!body.next_appointment) return null
+        const d = new Date(body.next_appointment)
+        return isNaN(d.getTime()) ? null : d.toISOString()
+      })(),
     })
-
-    console.log('[DEBUG PATCH] Resposta do n8n:', JSON.stringify(response, null, 2))
 
     const updatedPatient = response?.patient || response
     return NextResponse.json(updatedPatient)
@@ -74,12 +77,12 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     // Em vez de deletar o registro físico do Airtable, 
     // apenas alteramos o status para "Inativo" para preservar o histórico.
-    await triggerN8nWorkflow('nutriflow', {
+    await triggerN8nWorkflow('nutriflow-v2', {
       action: 'updatePatient',
       nutritionistId: userId,
       patientId: params.id,
